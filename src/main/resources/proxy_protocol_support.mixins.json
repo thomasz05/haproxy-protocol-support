@@ -1,13 +1,11 @@
 {
   "required": true,
-  "minVersion": "0.8.5",
   "package": "me.sizableshrimp.proxy_protocol_support.mixin",
   "compatibilityLevel": "JAVA_17",
+  "refmap": "${mod_id}.refmap.json",
   "server": [
     "ProxyProtocolAddressSetter",
     "ServerConnectionListenerAnon1Mixin"
   ],
-  "injectors": {
-    "defaultRequire": 1
-  }
+  "minVersion": "0.8.5"
 }
