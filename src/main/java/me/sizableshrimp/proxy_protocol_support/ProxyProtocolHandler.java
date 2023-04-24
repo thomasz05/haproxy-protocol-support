@@ -1,15 +1,18 @@
 package me.sizableshrimp.proxy_protocol_support;
 
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.haproxy.HAProxyCommand;
 import io.netty.handler.codec.haproxy.HAProxyMessage;
+import io.netty.handler.codec.haproxy.HAProxyMessageDecoder;
 import me.sizableshrimp.proxy_protocol_support.config.CIDRMatcher;
 import me.sizableshrimp.proxy_protocol_support.mixin.ProxyProtocolAddressSetter;
 import net.minecraft.network.Connection;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.List;
 
 /**
  * Reads HAProxyMessage to set valid Player IP
@@ -18,54 +21,62 @@ import java.net.SocketAddress;
  * @see io.netty.handler.codec.haproxy.HAProxyMessage
  */
 public class ProxyProtocolHandler extends ChannelInboundHandlerAdapter {
+    public static void setupConnection(Channel channel) {
+        channel.pipeline()
+                .addAfter("timeout", "haproxy-decoder", new HAProxyMessageDecoder())
+                .addAfter("haproxy-decoder", "haproxy-handler", new ProxyProtocolHandler());
+    }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (msg instanceof HAProxyMessage) {
-            HAProxyMessage message = ((HAProxyMessage) msg);
-            if (message.command() == HAProxyCommand.PROXY) {
-                final String realAddress = message.sourceAddress();
-                final int realPort = message.sourcePort();
+        if (!(msg instanceof HAProxyMessage message)) {
+            super.channelRead(ctx, msg);
+            return;
+        }
 
-                final InetSocketAddress socketAddr = new InetSocketAddress(realAddress, realPort);
+        if (message.command() != HAProxyCommand.PROXY)
+            return;
 
-                Connection connection = ((Connection) ctx.channel().pipeline().get("packet_handler"));
-                SocketAddress proxyAddress = connection.getRemoteAddress();
+        final String realAddress = message.sourceAddress();
+        final int realPort = message.sourcePort();
 
-                if (!ProxyProtocolSupport.whitelistedIPs.isEmpty()) {
-                    if (proxyAddress instanceof InetSocketAddress) {
-                        InetSocketAddress proxySocketAddress = ((InetSocketAddress) proxyAddress);
-                        boolean isWhitelistedIP = false;
+        final InetSocketAddress socketAddr = new InetSocketAddress(realAddress, realPort);
 
-                        for (CIDRMatcher matcher : ProxyProtocolSupport.whitelistedIPs) {
-                            if (matcher.matches(proxySocketAddress.getAddress())) {
-                                isWhitelistedIP = true;
-                                break;
-                            }
-                        }
+        Connection connection = ((Connection) ctx.channel().pipeline().get("packet_handler"));
+        SocketAddress proxyAddress = connection.getRemoteAddress();
 
-                        if (!isWhitelistedIP) {
-                            if (ctx.channel().isOpen()) {
-                                ctx.disconnect();
-                                ProxyProtocolSupport.warnLogger.accept("Blocked proxy IP: " + proxySocketAddress + " when tried to connect!");
-                            }
-                            return;
-                        }
-                    } else {
-                        ProxyProtocolSupport.warnLogger.accept("**********************************************************************");
-                        ProxyProtocolSupport.warnLogger.accept("* Detected other SocketAddress than InetSocketAddress!               *");
-                        ProxyProtocolSupport.warnLogger.accept("* Please report it with logs to mod author to provide compatibility! *");
-                        ProxyProtocolSupport.warnLogger.accept("* https://github.com/PanSzelescik/proxy-protocol-support/issues      *");
-                        ProxyProtocolSupport.warnLogger.accept("**********************************************************************");
-                        ProxyProtocolSupport.warnLogger.accept(proxyAddress.getClass().toString());
-                        ProxyProtocolSupport.warnLogger.accept(proxyAddress.toString());
+        // ProxyProtocolSupportMod.LOGGER.debug("Detected connection. Real IP: {}, Proxy IP: {}", socketAddr, proxyAddress);
+
+        List<CIDRMatcher> whitelistedIPs = ProxyProtocolSupportMod.getWhitelistedIPs();
+        if (!whitelistedIPs.isEmpty()) {
+            if (proxyAddress instanceof InetSocketAddress proxySocketAddress) {
+                boolean isWhitelistedIP = false;
+
+                for (CIDRMatcher matcher : whitelistedIPs) {
+                    if (matcher.matches(proxySocketAddress.getAddress())) {
+                        isWhitelistedIP = true;
+                        break;
                     }
                 }
 
-                ((ProxyProtocolAddressSetter) connection).setAddress(socketAddr);
+                if (!isWhitelistedIP) {
+                    if (ctx.channel().isOpen()) {
+                        ctx.disconnect();
+                        ProxyProtocolSupportMod.LOGGER.debug("Blocked IP {} from joining as it was not in the IP whitelist", proxySocketAddress);
+                    }
+                    return;
+                }
+            } else {
+                ProxyProtocolSupportMod.LOGGER.warn("Detected a proxy SocketAddress instance other than InetSocketAddress! This is a bug.");
+                // ProxyProtocolSupport.LOGGER.warn("**********************************************************************");
+                // ProxyProtocolSupport.LOGGER.warn("* Detected other SocketAddress than InetSocketAddress!               *");
+                // ProxyProtocolSupport.LOGGER.warn("* Please report it with logs to mod author to provide compatibility! *");
+                // ProxyProtocolSupport.LOGGER.warn("* https://github.com/PanSzelescik/proxy-protocol-support/issues      *");
+                // ProxyProtocolSupport.LOGGER.warn("**********************************************************************");
+                // ProxyProtocolSupport.LOGGER.warn("Class \"{}\" address \"{}\"", proxyAddress.getClass(), proxyAddress);
             }
-        } else {
-            super.channelRead(ctx, msg);
         }
+
+        ((ProxyProtocolAddressSetter) connection).setAddress(socketAddr);
     }
 }

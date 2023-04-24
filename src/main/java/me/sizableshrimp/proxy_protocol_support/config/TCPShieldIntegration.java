@@ -13,7 +13,6 @@ import java.util.Collection;
  * @author PanSzelescik
  */
 public class TCPShieldIntegration {
-
     private static final String IPV4 = "https://tcpshield.com/v4/";
 
     public static Collection<CIDRMatcher> getWhitelistedIPs() throws IOException {

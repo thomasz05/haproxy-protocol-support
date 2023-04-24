@@ -159,6 +159,10 @@ mixin {
     debug.export = true
 }
 
+configurations {
+    minecraftLibrary.extendsFrom minecraftEmbed
+}
+
 dependencies {
     // Specify the version of Minecraft to use. If this is any group other than 'net.minecraft', it is assumed
     // that the dep is a ForgeGradle 'patcher' dependency, and its patches will be applied.

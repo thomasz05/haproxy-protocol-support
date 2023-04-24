@@ -4,9 +4,9 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 /**
- * Taken & modified from TCPShield, licensed under MIT. See https://github.com/TCPShield/RealIP/blob/master/LICENSE
- *
- * https://github.com/TCPShield/RealIP/blob/32d422a9523cb6e25b571072851f3306bb8bbc4f/src/main/java/net/tcpshield/tcpshield/validation/cidr/CIDRMatcher.java
+ * Taken & modified from TCPShield, licensed under MIT. See <a href="https://github.com/TCPShield/RealIP/blob/master/LICENSE">license</a>
+ * and
+ * <a href="https://github.com/TCPShield/RealIP/blob/32d422a9523cb6e25b571072851f3306bb8bbc4f/src/main/java/net/tcpshield/tcpshield/validation/cidr/CIDRMatcher.java">source.</a>
  */
 public class CIDRMatcher {
     private final int maskBits;
