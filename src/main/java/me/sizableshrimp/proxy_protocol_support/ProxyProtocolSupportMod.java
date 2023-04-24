@@ -1,6 +1,5 @@
 package me.sizableshrimp.proxy_protocol_support;
 
-import com.mojang.logging.LogUtils;
 import me.sizableshrimp.proxy_protocol_support.config.CIDRMatcher;
 import me.sizableshrimp.proxy_protocol_support.config.CommonConfig;
 import me.sizableshrimp.proxy_protocol_support.config.TCPShieldIntegration;
@@ -8,9 +7,9 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
-import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.fml.loading.FMLEnvironment;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -21,7 +20,7 @@ import java.util.List;
 @Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)
 public class ProxyProtocolSupportMod {
     public static final String MODID = "proxy_protocol_support";
-    public static final Logger LOGGER = LogUtils.getLogger();
+    public static final Logger LOGGER = LogManager.getLogger();
 
     private static boolean enabled = false;
     private static final List<CIDRMatcher> whitelistedIPs = new ArrayList<>();
@@ -40,8 +39,8 @@ public class ProxyProtocolSupportMod {
     }
 
     @SubscribeEvent
-    public static void onModConfigLoadingReloading(ModConfigEvent event) throws IOException {
-        if (FMLEnvironment.dist != Dist.DEDICATED_SERVER || event.getClass().getSimpleName().equals("Unloading") || event.getConfig().getType() != ModConfig.Type.COMMON)
+    public static void onModConfigLoadingReloading(ModConfig.ModConfigEvent event) throws IOException {
+        if (FMLEnvironment.dist != Dist.DEDICATED_SERVER || event.getConfig().getType() != ModConfig.Type.COMMON)
             return;
 
         if (!CommonConfig.INSTANCE.enableProxyProtocol.get()) {

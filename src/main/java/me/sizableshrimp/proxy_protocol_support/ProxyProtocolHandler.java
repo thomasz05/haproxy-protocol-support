@@ -8,7 +8,7 @@ import io.netty.handler.codec.haproxy.HAProxyMessage;
 import io.netty.handler.codec.haproxy.HAProxyMessageDecoder;
 import me.sizableshrimp.proxy_protocol_support.config.CIDRMatcher;
 import me.sizableshrimp.proxy_protocol_support.mixin.ProxyProtocolAddressSetter;
-import net.minecraft.network.Connection;
+import net.minecraft.network.NetworkManager;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -42,7 +42,7 @@ public class ProxyProtocolHandler extends ChannelInboundHandlerAdapter {
 
         final InetSocketAddress socketAddr = new InetSocketAddress(realAddress, realPort);
 
-        Connection connection = ((Connection) ctx.channel().pipeline().get("packet_handler"));
+        NetworkManager connection = ((NetworkManager) ctx.channel().pipeline().get("packet_handler"));
         SocketAddress proxyAddress = connection.getRemoteAddress();
 
         // ProxyProtocolSupportMod.LOGGER.debug("Detected connection. Real IP: {}, Proxy IP: {}", socketAddr, proxyAddress);
