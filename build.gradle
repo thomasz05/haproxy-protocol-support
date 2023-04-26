@@ -4,19 +4,14 @@ plugins {
     id 'net.minecraftforge.gradle' version '5.1.+'
     id 'org.parchmentmc.librarian.forgegradle' version '1.+'
     id 'org.spongepowered.mixin' version '0.7.+'
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
 }
 
 version = "${minecraft_version}-${mod_version}"
 group = mod_base_package // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "${mod_id}-forge"
 
-// Mojang ships Java 17 to end users in 1.18+, so your mod should target Java 17.
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
-
-jarJar {
-    disableDefaultSources()
-    enable()
-}
+java.toolchain.languageVersion = JavaLanguageVersion.of(8)
 
 println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
 minecraft {
@@ -160,7 +155,7 @@ mixin {
 }
 
 configurations {
-    minecraftLibrary.extendsFrom minecraftEmbed
+    implementation.extendsFrom shadow
 }
 
 dependencies {
@@ -172,7 +167,7 @@ dependencies {
     // Mixin annotation processor - generates the refmap
     annotationProcessor "org.spongepowered:mixin:${mixin_version}:processor"
 
-    minecraftEmbed("io.netty:netty-codec-haproxy:[${netty_codec_haproxy_version}]")
+    shadow "io.netty:netty-codec-haproxy:${netty_codec_haproxy_version}"
 
     // Real mod deobf dependency examples - these get remapped to your current mappings
     // compileOnly fg.deobf("mezz.jei:jei-${mc_version}:${jei_version}:api") // Adds JEI API as a compile dependency
@@ -244,16 +239,27 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
 }
 
-afterEvaluate {
-    tasks.jarJar {
-        archiveClassifier = ''
+def relocateTargets = ['io.netty']
+shadowJar {
+    archiveClassifier = ''
+    configurations = [project.configurations.shadow]
+    relocateTargets.forEach {
+        relocate it, "${project.group}.relocated.$it"
     }
+}
+
+reobf {
+    shadowJar {}
+}
+
+afterEvaluate {
+    assemble.dependsOn shadowJar
 
     jar.finalizedBy reobfJar
-    tasks.jarJar.finalizedBy reobfJarJar
+    shadowJar.finalizedBy reobfShadowJar
 
     reobfJar.dependsOn 'addMixinsToJar'
-    reobfJarJar.dependsOn 'addMixinsToJarJar'
+    reobfShadowJar.dependsOn 'addMixinsToShadowJar'
 }
 
 // Example configuration to allow publishing using the maven-publish plugin
@@ -266,7 +272,7 @@ publishing {
     publications {
         mavenJava(MavenPublication) {
             artifactId = mod_id
-            artifact(tasks.jarJar) {
+            artifact(shadowJar) {
                 classifier = 'fat'
             }
             artifact(jar) {

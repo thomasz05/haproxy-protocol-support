@@ -29,10 +29,12 @@ public class ProxyProtocolHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (!(msg instanceof HAProxyMessage message)) {
+        if (!(msg instanceof HAProxyMessage)) {
             super.channelRead(ctx, msg);
             return;
         }
+
+        HAProxyMessage message = (HAProxyMessage) msg;
 
         if (message.command() != HAProxyCommand.PROXY)
             return;
@@ -49,7 +51,8 @@ public class ProxyProtocolHandler extends ChannelInboundHandlerAdapter {
 
         List<CIDRMatcher> whitelistedIPs = ProxyProtocolSupportMod.getWhitelistedIPs();
         if (!whitelistedIPs.isEmpty()) {
-            if (proxyAddress instanceof InetSocketAddress proxySocketAddress) {
+            if (proxyAddress instanceof InetSocketAddress) {
+                InetSocketAddress proxySocketAddress = (InetSocketAddress) proxyAddress;
                 boolean isWhitelistedIP = false;
 
                 for (CIDRMatcher matcher : whitelistedIPs) {

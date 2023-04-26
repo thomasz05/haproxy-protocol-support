@@ -1,5 +1,6 @@
 package me.sizableshrimp.proxy_protocol_support.config;
 
+import com.google.common.collect.ImmutableList;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.config.ModConfig;
@@ -37,7 +38,7 @@ public class CommonConfig {
                 .comment("The list of IPs to whitelist for joining the server.",
                         "Generally, this list should only be your proxy IPs.",
                         "If empty, all IPs are allowed.")
-                .define("whitelistedIPs", List.of(), o -> o instanceof List);
+                .define("whitelistedIPs", ImmutableList.of(), o -> o instanceof List);
 
         this.whitelistTCPShieldServers = builder
                 .comment("Whether TCPShield's IPs should be automatically added to the whitelist")
